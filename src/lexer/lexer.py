@@ -1,4 +1,5 @@
-from .tokens import LiteralTokenType, OperatorTokenType, Token, EOFTokenType, SingleCharTokenType, TokenType 
+from .tokens import (LiteralTokenType, OperatorTokenType, Token, 
+                     EOFTokenType, SingleCharTokenType, TokenType) 
 from ..exceptions import PyNoxSyntaxError
 
 __all__ : tuple[str, ...] = (
@@ -47,11 +48,11 @@ class Lexer:
             case '!':
                 if self.match('='):
                     self.add_token(OperatorTokenType.NOT_EQUAL)
-                else 
+                else: 
                     self.add_token(OperatorTokenType.NOT)
             case '=':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.EQUAL_EQUAL))
+                    self.add_token(OperatorTokenType.EQUAL_EQUAL)
                 else:
                     self.add_token(OperatorTokenType.EQUAL)
             case '<':
@@ -80,7 +81,6 @@ class Lexer:
                 self.line += 1
             case '"':
                 self.process_string()
-
             case _:
                 raise PyNoxSyntaxError(f"Unexpected character: {char}") 
     

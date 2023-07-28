@@ -1,0 +1,29 @@
+name: Code formatter and linter 
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+
+      - name: Ruff check 
+        uses: chartboost/ruff-action@v1
+        with:
+          src: "./src"
+          version: 0.0.259
+          args: --show-source
+
