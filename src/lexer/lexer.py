@@ -48,7 +48,7 @@ class Lexer:
             case '!':
                 if self.match('='):
                     self.add_token(OperatorTokenType.NOT_EQUAL)
-                else 
+                else: 
                     self.add_token(OperatorTokenType.NOT)
             case '=':
                 if self.match('='):
