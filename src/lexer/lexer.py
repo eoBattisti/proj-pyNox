@@ -1,4 +1,5 @@
-from .tokens import LiteralTokenType, OperatorTokenType, Token, EOFTokenType, SingleCharTokenType, TokenType 
+from .tokens import (LiteralTokenType, OperatorTokenType, Token, 
+                     EOFTokenType, SingleCharTokenType, TokenType) 
 from ..exceptions import PyNoxSyntaxError
 
 __all__ : tuple[str, ...] = (
@@ -80,7 +81,6 @@ class Lexer:
                 self.line += 1
             case '"':
                 self.process_string()
-
             case _:
                 raise PyNoxSyntaxError(f"Unexpected character: {char}") 
     
