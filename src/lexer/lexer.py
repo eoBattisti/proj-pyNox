@@ -52,7 +52,7 @@ class Lexer:
                     self.add_token(OperatorTokenType.NOT)
             case '=':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.EQUAL_EQUAL))
+                    self.add_token(OperatorTokenType.EQUAL_EQUAL)
                 else:
                     self.add_token(OperatorTokenType.EQUAL)
             case '<':
