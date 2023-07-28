@@ -25,14 +25,5 @@ jobs:
         with:
           src: "./src"
           version: 0.0.259
-
-  formatter:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Ruff fix
-        uses: chartboost/ruff-action@v1
-        with:
-          src: "./src"
-          version: 0.0.259
-          args: --fix
+          args: --show-source
 
