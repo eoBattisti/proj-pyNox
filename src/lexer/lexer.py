@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from .tokens import (LiteralTokenType, OperatorTokenType, Token, 
                      EOFTokenType, SingleCharTokenType, TokenType) 
 from ..exceptions import PyNoxSyntaxError
@@ -8,69 +10,72 @@ __all__ : tuple[str, ...] = (
 
 class Lexer:
 
-    def __init__(self, source: str):
+    def __init__(self, source: str) -> None:
         self.source: str = source
-        self.tokens: list[Token] = list()
+        self.tokens: List[Token] = list()
         self.start: int = 0
         self.current: int = 0
         self.line: int = 1
 
-    def scan_tokens(self):
+    def scan_tokens(self) -> List[Token]:
         while not self.is_at_end():
             self.start = self.current
             self.scan_token()
-        self.tokens.append(Token(EOFTokenType.EOF, "", None, self.line))
+        self.tokens.append(Token(ttype=EOFTokenType.EOF,
+                                 lexeme="",
+                                 literal=None,
+                                 line=self.line))
         return self.tokens
 
-    def scan_token(self):
+    def scan_token(self) -> None:
         char = self.advance()
         match char:
             case '(':
-                self.add_token(SingleCharTokenType.LEFT_PAREN)
+                self.add_token(token_type=SingleCharTokenType.LEFT_PAREN)
             case ')':
-                self.add_token(SingleCharTokenType.RIGHT_PAREN)
+                self.add_token(token_type=SingleCharTokenType.RIGHT_PAREN)
             case '{':
-                self.add_token(SingleCharTokenType.LEFT_BRACE)
+                self.add_token(token_type=SingleCharTokenType.LEFT_BRACE)
             case '}':
-                self.add_token(SingleCharTokenType.RIGHT_BRACE)
+                self.add_token(token_type=SingleCharTokenType.RIGHT_BRACE)
             case ',':
-                self.add_token(SingleCharTokenType.COMMA)
+                self.add_token(token_type=SingleCharTokenType.COMMA)
             case '.':
-                self.add_token(SingleCharTokenType.DOT)
+                self.add_token(token_type=SingleCharTokenType.DOT)
             case '-':
-                self.add_token(SingleCharTokenType.MINUS)
+                self.add_token(token_type=SingleCharTokenType.MINUS)
             case '+':
-                self.add_token(SingleCharTokenType.PLUS)
+                self.add_token(token_type=SingleCharTokenType.PLUS)
             case ';':
-                self.add_token(SingleCharTokenType.SEMICOLON)
+                self.add_token(token_type=SingleCharTokenType.SEMICOLON)
             case '*':
-                self.add_token(SingleCharTokenType.STAR)
+                self.add_token(token_type=SingleCharTokenType.STAR)
             case '!':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.NOT_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.NOT_EQUAL)
                 else: 
-                    self.add_token(OperatorTokenType.NOT)
+                    self.add_token(token_type=OperatorTokenType.NOT)
             case '=':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.EQUAL_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.EQUAL_EQUAL)
                 else:
-                    self.add_token(OperatorTokenType.EQUAL)
+                    self.add_token(token_type=OperatorTokenType.EQUAL)
             case '<':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.LESS_THAN_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.LESS_THAN_EQUAL)
                 else:
-                    self.add_token(OperatorTokenType.LESS_THAN)
+                    self.add_token(token_type=OperatorTokenType.LESS_THAN)
             case '>':
                 if self.match('='):
-                    self.add_token(OperatorTokenType.GREATER_THAN_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.GREATER_THAN_EQUAL)
                 else:
-                    self.add_token(OperatorTokenType.GREATER_THAN)
+                    self.add_token(token_type=OperatorTokenType.GREATER_THAN)
             case '/':
                 if self.match('/'):
                     while self.peek() != '\n' and not self.is_at_end():
                         self.advance()
                 else:
-                    self.add_token(OperatorTokenType.SLASH)
+                    self.add_token(token_type=OperatorTokenType.SLASH)
             case ' ':
                 pass
             case '\r':
@@ -84,38 +89,41 @@ class Lexer:
             case _:
                 raise PyNoxSyntaxError(f"Unexpected character: {char}") 
     
-    def process_string(self):
+    def process_string(self) -> None:
         while self.peek() != '"':
             if self.peek() == '\n':
                 self.line += 1
             self.advance()
 
         if self.is_at_end():
-            raise PyNoxSyntaxError("Unterminated string", self.line)
+            raise PyNoxSyntaxError("Unterminated string")
         
         self.advance()
 
         value = self.source[self.start + 1 : self.current - 1]
-        self.add_token(LiteralTokenType.STRING, value)
+        self.add_token(token_type=LiteralTokenType.STRING, literal=value)
 
-    def advance(self):
+    def advance(self) -> str:
         self.current += 1
         return self.source[self.current]
 
-    def match(self, char: str):
+    def match(self, char: str) -> bool:
         if self.is_at_end() or self.source[self.current] != char:
             return False
         self.current += 1
         return True
     
-    def peek(self):
+    def peek(self) -> str:
         if self.is_at_end():
             return '\0'
         return self.source[self.current]
 
-    def add_token(self, token_type: TokenType,  literal=None):
+    def add_token(self, token_type: TokenType,  literal: Optional[str] = None) -> None:
         text = self.source[self.start:self.current]
-        self.tokens.append(Token(token_type, text, literal, self.line))
+        self.tokens.append(Token(ttype=token_type,
+                                 lexeme=text,
+                                 literal=literal,
+                                 line=self.line))
 
     def is_at_end(self) -> bool:
         return self.current >= len(self.source)

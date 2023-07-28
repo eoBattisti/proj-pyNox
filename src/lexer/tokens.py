@@ -1,11 +1,12 @@
-from enum import StrEnum
 import enum
+from typing import Optional, Dict
 
-class TokenType(StrEnum):
+
+class TokenType(enum.StrEnum):
     #  Base class for Token types
 
     @classmethod
-    def as_dict(cls):
+    def as_dict(cls) -> Dict[str, str]:
         return {key: str(t) for key, t in cls.__members__.items()}
 
 
@@ -68,7 +69,8 @@ class LiteralTokenType(TokenType):
 
 class Token:
 
-    def __init__(self, ttype: TokenType, lexeme: str, literal, line: int) -> None: 
+    def __init__(self, ttype: TokenType, lexeme: str, line: int,
+                 literal: Optional[str] = None) -> None: 
         self.ttype = ttype
         self.lexeme = lexeme
         self.literal = literal
