@@ -1,1 +1,8 @@
-foobar
+foo = 10
+bar = 20
+x = bar + foo
+
+
+if foo == 10 {
+  print "foo is 10"
+}

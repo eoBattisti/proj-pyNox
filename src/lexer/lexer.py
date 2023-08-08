@@ -1,12 +1,10 @@
 from typing import List, Optional
 
-from .tokens import (LiteralTokenType, OperatorTokenType, Token, 
+from .tokens import (KeywordTokens, LiteralTokenType, OperatorTokenType, Token, 
                      EOFTokenType, SingleCharTokenType, TokenType) 
 from ..exceptions import PyNoxSyntaxError
 
-__all__ : tuple[str, ...] = (
-    "Lexer",
-)
+__all__  = ["Lexer"]
 
 class Lexer:
 
@@ -21,14 +19,14 @@ class Lexer:
         while not self.is_at_end():
             self.start = self.current
             self.scan_token()
-        self.tokens.append(Token(ttype=EOFTokenType.EOF,
+        self.tokens.append(Token(token_type=EOFTokenType.EOF,
                                  lexeme="",
                                  literal=None,
                                  line=self.line))
         return self.tokens
 
     def scan_token(self) -> None:
-        char = self.advance()
+        char: str = self.advance()
         match char:
             case '(':
                 self.add_token(token_type=SingleCharTokenType.LEFT_PAREN)
@@ -87,8 +85,35 @@ class Lexer:
             case '"':
                 self.process_string()
             case _:
-                raise PyNoxSyntaxError(f"Unexpected character: {char}") 
+                if char.isdigit():
+                    self.process_number()
+                elif char.isalpha():
+                    self.add_token(token_type=LiteralTokenType.IDENTIFIER)
+
+                else:
+                    raise PyNoxSyntaxError(f"Unexpected character: {char}") 
+    def identifier(self) -> None:
+        while self.peek().isalnum():
+            self.advance()
+        text: str = self.source[self.start:self.current]
+        token_type = KeywordTokens.as_dict().get(text)        
+        if not TokenType:
+            token_type = LiteralTokenType.IDENTIFIER
+        self.add_token(token_type=KeywordTokens(token_type))
     
+    def process_number(self) -> None:
+        while self.peek().isdigit():
+            self.advance()
+
+        if self.peek() == '.' and self.peek_next().isdigit():
+            self.advance()
+            while self.peek().isdigit():
+                self.advance()
+
+        self.add_token(token_type=LiteralTokenType.NUMBER,
+                       literal=self.source[self.start:self.current])
+    
+
     def process_string(self) -> None:
         while self.peek() != '"':
             if self.peek() == '\n':
@@ -104,8 +129,9 @@ class Lexer:
         self.add_token(token_type=LiteralTokenType.STRING, literal=value)
 
     def advance(self) -> str:
+        char = self.source[self.current]
         self.current += 1
-        return self.source[self.current]
+        return char
 
     def match(self, char: str) -> bool:
         if self.is_at_end() or self.source[self.current] != char:
@@ -117,10 +143,15 @@ class Lexer:
         if self.is_at_end():
             return '\0'
         return self.source[self.current]
+    
+    def peek_next(self) -> str:
+        if self.current + 1 >= len(self.source):
+            return '\0'
+        return self.source[self.current + 1]
 
     def add_token(self, token_type: TokenType,  literal: Optional[str] = None) -> None:
         text = self.source[self.start:self.current]
-        self.tokens.append(Token(ttype=token_type,
+        self.tokens.append(Token(token_type=token_type,
                                  lexeme=text,
                                  literal=literal,
                                  line=self.line))

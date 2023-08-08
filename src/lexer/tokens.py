@@ -1,4 +1,5 @@
 import enum
+from dataclasses import dataclass
 from typing import Optional, Dict
 
 
@@ -10,6 +11,7 @@ class TokenType(enum.StrEnum):
         return {key: str(t) for key, t in cls.__members__.items()}
 
 
+               
 class SingleCharTokenType(TokenType):
     # Single character tokens
     LEFT_PAREN = "("
@@ -38,22 +40,24 @@ class OperatorTokenType(TokenType):
     SLASH = "/"
 
 class KeywordTokens(TokenType):
-    VAR = "var"
+    AND = "and"
+    BREAK = "break"
+    CLASS = "class"
+    CONTINUE = "continue"
+    ELSE = "else"
+    FALSE = "false"
+    FOR = "for"
     FUNCTION = "fun"
     IF = "if"
-    ELSE = "else"
-    WHILE = "while"
-    FOR = "for"
-    RETURN = "return"
-    CONTINUE = "continue"
-    BREAK = "break"
-    AND = "and"
-    OR = "or"
-    TRUE = "true"
-    FALSE = "false"
     NIL = "nil"
+    OR = "or"
     PRINT = "print"
+    RETURN = "return"
     SUPER = "super"
+    THIS = "this"
+    TRUE = "true"
+    VAR = "var"
+    WHILE = "while"
 
 
 class EOFTokenType(TokenType):
@@ -67,14 +71,10 @@ class LiteralTokenType(TokenType):
     STRING = enum.auto()
     IDENTIFIER = enum.auto()
 
+@dataclass(kw_only=True, frozen=True)
 class Token:
-
-    def __init__(self, ttype: TokenType, lexeme: str, line: int,
-                 literal: Optional[str] = None) -> None: 
-        self.ttype = ttype
-        self.lexeme = lexeme
-        self.literal = literal
-        self.line = line
+    token_type: TokenType
+    lexeme: str
+    literal: Optional[str] 
+    line: int 
     
-    def __str__(self) -> str:
-        return f"{self.ttype} {self.lexeme} {self.literal}"

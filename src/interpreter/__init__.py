@@ -1,3 +1,3 @@
-from pyNox import PyNox
+from .pyNox import PyNox
 
-__all__: tuple[str, ...] = ("PyNox",)
+__all__ = ["PyNox"]

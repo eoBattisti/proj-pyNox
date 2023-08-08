@@ -1,27 +1,29 @@
-import sys
+import pathlib
+
+from src.lexer import Lexer
+
+__all__ = ["PyNox",]
 
 
 class PyNox:
 
-    def __init__(self, args):
+    def __init__(self, source: str | pathlib.Path = "") -> None:
+        self._file_path = pathlib.Path(source) if source else None
         self._had_error: bool = False
-        if len(args) > 1:
-            print(f"Too many arguments: {args}")
-            exit(64)
-        elif len(args) == 1:
-            self.run_file(args[0]) 
-        else:
-            self.run_prompt()
+        self._source = self.__read_file(path=self._file_path) if self._file_path else ""
+        self.lexer = Lexer(source=self._source)
+
+    def __read_file(self, path: pathlib.Path) -> str:
+        with open(path, "r") as f:
+            return f.read().strip()
     
-    def run_file(self, file):
-        try:
-            if self._had_error:
-                exit(65)
-            with open(file, "r") as f:
-                self.run(f.read())
-                self._had_error = False
-        except FileNotFoundError:
-            print(f"File not found: {file}")
+    def run_file(self):
+        if self._had_error:
+            exit(65)
+        tokens = self.lexer.scan_tokens()
+        for token in tokens:
+            print(token)
+            self._had_error = False
 
     def run_prompt(self):
         while True:
@@ -39,12 +41,6 @@ class PyNox:
         for char in source:
             print(char)
 
-    def error(self, line: int, message: str):
-        self.report(line, "", message)
-
-    def report(self, line: int, where: str, message: str):
-        print(f"Error: {where} on line {line}: {message}")
-        self._had_error = True
-
 if __name__ == '__main__':
-    PyNox(sys.argv[1:])
+    p = PyNox(source="../../test_file.txt")
+    p.run_file()
