@@ -23,6 +23,9 @@ class ErrorTypes(IntEnum):
 
 
 class PyNoxException(Exception):
+    """
+    Base class for PyNox exceptions.
+    """
 
     def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_SOFTWARE):
         self.message = message

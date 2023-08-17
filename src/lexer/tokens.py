@@ -4,16 +4,22 @@ from typing import Optional, Dict
 
 
 class TokenType(enum.StrEnum):
-    #  Base class for Token types
+    """
+    Base class for token types.
+    """
 
     @classmethod
     def as_dict(cls) -> Dict[str, str]:
+        """
+        Get a dictionary mapping token names to their string representations.
+
+        :return: A dictionary of token names and their string representations.
+        """
         return {key: str(t) for key, t in cls.__members__.items()}
 
 
                
 class SingleCharTokenType(TokenType):
-    # Single character tokens
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
     RIGHT_BRACKET = "]"
