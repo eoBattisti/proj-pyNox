@@ -32,18 +32,18 @@ class SingleCharTokenType(TokenType):
     PLUS = "+"
     SEMICOLON = ";"
     STAR = "*"
+    SLASH = "/"
 
 
 class OperatorTokenType(TokenType):
     EQUAL = "="
-    NOT_EQUAL = "!="
+    BANG_EQUAL= "!="
     EQUAL_EQUAL = "=="
-    NOT = "!" 
-    GREATER_THAN = ">"
-    GREATER_THAN_EQUAL = ">="
-    LESS_THAN = "<"
-    LESS_THAN_EQUAL = "<="
-    SLASH = "/"
+    BANG = "!" 
+    GREATER = ">"
+    GREATER_EQUAL = ">="
+    LESS = "<"
+    LESS_EQUAL = "<="
 
 class KeywordTokens(TokenType):
     AND = "and"

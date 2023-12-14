@@ -1,40 +1,34 @@
-from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Protocol
 
-from lexer.tokens import Token
+from ..lexer.tokens import Token
 
-class ExpressionVisitor(ABC):
-    
-    @abstractmethod
+class ExpressionVisitor(Protocol):
+
     def visit_binary(self, expression) -> Any:
         pass
 
-    @abstractmethod
     def visit_unary(self, expression) -> Any:
         pass
 
-    @abstractmethod
     def visit_grouping(self, expression) -> Any:
         pass
 
-    @abstractmethod
     def visit_literal(self, expression) -> Any:
         pass
 
 
-class Expression(ABC):
-    
-    @abstractmethod
+class Expression(Protocol):
+
     def accept(self, visitor: ExpressionVisitor) -> Any:
         pass
 
 
 class Binary(Expression):
 
-    def __init__(self, left: Expression, operator: Token, righ : Expression) -> None:
+    def __init__(self, left: Expression, operator: Token, right : Expression) -> None:
         self.left = left
         self.operator = operator
-        self.right = righ   
+        self.right = right
 
     def accept(self, visitor: ExpressionVisitor) -> Any:
         return visitor.visit_binary(expression=self)

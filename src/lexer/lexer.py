@@ -16,7 +16,7 @@ class Lexer:
         Initialize a new Lexer instance with the given source code.
 
         :param source: The source code to tokenize.
-            """
+        """
         self.source: str = source
         self.tokens: List[Token] = list()
         self.start: int = 0
@@ -59,16 +59,16 @@ class Lexer:
             case '-':
                 self.add_token(token_type=SingleCharTokenType.MINUS)
             case '+':
-                self.add_token(token_type=SingleCharTokenType.PLUS)
+                    self.add_token(token_type=SingleCharTokenType.PLUS)
             case ';':
                 self.add_token(token_type=SingleCharTokenType.SEMICOLON)
             case '*':
                 self.add_token(token_type=SingleCharTokenType.STAR)
             case '!':
                 if self.match('='):
-                    self.add_token(token_type=OperatorTokenType.NOT_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.BANG_EQUAL)
                 else: 
-                    self.add_token(token_type=OperatorTokenType.NOT)
+                    self.add_token(token_type=OperatorTokenType.BANG)
             case '=':
                 if self.match('='):
                     self.add_token(token_type=OperatorTokenType.EQUAL_EQUAL)
@@ -76,20 +76,20 @@ class Lexer:
                     self.add_token(token_type=OperatorTokenType.EQUAL)
             case '<':
                 if self.match('='):
-                    self.add_token(token_type=OperatorTokenType.LESS_THAN_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.LESS_EQUAL)
                 else:
-                    self.add_token(token_type=OperatorTokenType.LESS_THAN)
+                    self.add_token(token_type=OperatorTokenType.LESS)
             case '>':
                 if self.match('='):
-                    self.add_token(token_type=OperatorTokenType.GREATER_THAN_EQUAL)
+                    self.add_token(token_type=OperatorTokenType.GREATER_EQUAL)
                 else:
-                    self.add_token(token_type=OperatorTokenType.GREATER_THAN)
+                    self.add_token(token_type=OperatorTokenType.GREATER)
             case '/':
                 if self.match('/'):
                     while self.peek() != '\n' and not self.is_at_end():
                         self.advance()
                 else:
-                    self.add_token(token_type=OperatorTokenType.SLASH)
+                    self.add_token(token_type=SingleCharTokenType.SLASH)
             case ' ':
                 pass
             case '\r':
@@ -104,8 +104,7 @@ class Lexer:
                 if char.isdigit():
                     self.process_number()
                 elif char.isalpha():
-                    self.add_token(token_type=LiteralTokenType.IDENTIFIER)
-
+                    self.identifier()
                 else:
                     raise PyNoxSyntaxError(f"Unexpected character: {char}") 
     def identifier(self) -> None:
@@ -115,11 +114,12 @@ class Lexer:
         while self.peek().isalnum():
             self.advance()
         text: str = self.source[self.start:self.current]
-        token_type = KeywordTokens.as_dict().get(text)        
-        if not TokenType:
+        if text in list(KeywordTokens):
+            token_type = KeywordTokens(text)
+        else:
             token_type = LiteralTokenType.IDENTIFIER
-        self.add_token(token_type=KeywordTokens(token_type))
-    
+        self.add_token(token_type=token_type)
+
     def process_number(self) -> None:
         """
         Process a number token.
@@ -134,7 +134,7 @@ class Lexer:
 
         self.add_token(token_type=LiteralTokenType.NUMBER,
                        literal=self.source[self.start:self.current])
-    
+
 
     def process_string(self) -> None:
         """
@@ -147,7 +147,7 @@ class Lexer:
 
         if self.is_at_end():
             raise PyNoxSyntaxError("Unterminated string")
-        
+
         self.advance()
 
         value = self.source[self.start + 1 : self.current - 1]
@@ -174,7 +174,7 @@ class Lexer:
             return False
         self.current += 1
         return True
-    
+
     def peek(self) -> str:
         """
         Peek at the current character without advancing the position.
@@ -184,7 +184,7 @@ class Lexer:
         if self.is_at_end():
             return '\0'
         return self.source[self.current]
-    
+
     def peek_next(self) -> str:
         """
         Peek at the next character without advancing the position.

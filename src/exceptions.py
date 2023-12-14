@@ -36,8 +36,19 @@ class PyNoxException(Exception):
         return f"{self.error_type.name}: {self.message}"
 
 
+class PyNoxRuntimeError(PyNoxException):
+
+    def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_USAGE):
+        super().__init__(message, error_type)
+
+
 class PyNoxSyntaxError(PyNoxException):
 
     def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_USAGE):
         super().__init__(message, error_type)
 
+
+class PyNoxParserError(PyNoxException):
+
+    def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_USAGE):
+        super().__init__(message, error_type)
