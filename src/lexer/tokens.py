@@ -1,6 +1,6 @@
 import enum
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Any, Optional, Dict
 
 
 class TokenType(enum.StrEnum):
@@ -81,6 +81,6 @@ class LiteralTokenType(TokenType):
 class Token:
     token_type: TokenType
     lexeme: str
-    literal: Optional[str] 
+    literal: Any
     line: int 
     

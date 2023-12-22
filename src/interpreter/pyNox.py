@@ -28,8 +28,8 @@ class PyNox:
 
         tokens = self.lexer.scan_tokens()
         parser = Parser(tokens=tokens, logger=self.logger)
-        expression = parser.parse()
-        self._interpreter.interpret(expression=expression)
+        statements = parser.parse()
+        self._interpreter.interpret(statements=statements)
         if self._had_error:
             return
 

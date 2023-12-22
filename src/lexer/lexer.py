@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from .tokens import (KeywordTokens, LiteralTokenType, OperatorTokenType, Token, 
                      EOFTokenType, SingleCharTokenType, TokenType) 
@@ -127,13 +127,17 @@ class Lexer:
         while self.peek().isdigit():
             self.advance()
 
+
+        is_float = False
         if self.peek() == '.' and self.peek_next().isdigit():
+            is_float = True
             self.advance()
             while self.peek().isdigit():
                 self.advance()
 
+        value = self.source[self.start:self.current]
         self.add_token(token_type=LiteralTokenType.NUMBER,
-                       literal=self.source[self.start:self.current])
+                       literal= float(value) if is_float else int(value))
 
 
     def process_string(self) -> None:
@@ -195,7 +199,7 @@ class Lexer:
             return '\0'
         return self.source[self.current + 1]
 
-    def add_token(self, token_type: TokenType,  literal: Optional[str] = None) -> None:
+    def add_token(self, token_type: TokenType,  literal: Any = None) -> None:
         """
         Add a new token to the list of tokens.
 

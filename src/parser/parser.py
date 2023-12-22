@@ -1,9 +1,10 @@
 from typing import List
 
 from ..exceptions import PyNoxParserError
-from ..interpreter.expression import Binary, Expression, Grouping, Literal, Unary
+from ..interpreter.expression import Assign, Binary, Expr, Grouping, Literal, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
+from ..interpreter.statements import Print, Stmt, Expression, Var
 
 
 class Parser:
@@ -16,14 +17,66 @@ class Parser:
 
     def parse(self):
         try:
-            return self.expression()
+            statements: List[Stmt] = []
+            while not self.__is_at_end():
+                statements.append(self.__declaration())
+            return statements
         except PyNoxParserError as error:
             self.__logger.error(str(error))
 
-    def expression(self) -> Expression:
-        return self.equality()
+    def __declaration(self) -> Stmt:
+        try:
+            if self.__match(KeywordTokens.VAR):
+                return self.__var_declaration()
+            return self.__statement()
+        except PyNoxParserError:
+            self.__synchronize()
+            return None
 
-    def equality(self) -> Expression:
+    def __statement(self) -> Stmt: 
+        if self.__match(KeywordTokens.PRINT):
+            return self.__print_stmt()
+
+        return self.__expression_stmt()
+
+    def __print_stmt(self) -> Stmt:
+        value = self.expression()
+        self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after value.")
+        return Print(value)
+
+    def __var_declaration(self) -> Stmt:
+        name = self.__consume(LiteralTokenType.IDENTIFIER, "Expected variable name.")
+        initializer = None
+
+        if self.__match(OperatorTokenType.EQUAL):
+            initializer = self.expression()
+
+        self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after variable declaration.")
+        return Var(name=name, initializer=initializer)
+
+
+    def __expression_stmt(self) -> Stmt:
+        expression = self.expression()
+        self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after value.")
+        return Expression(expression)
+
+    def __assignment(self) -> Expr:
+        expression = self.equality()
+
+        if self.__match(OperatorTokenType.EQUAL):
+            equals: Token = self.__previous()
+            value = self.__assignment()
+            if isinstance(expression, Variable):
+                name = expression.name
+                return Assign(name=name, value=value)
+            self.__error(token=equals, message="Invalid assignmnet target.")
+
+        return expression
+
+    def expression(self) -> Expr:
+        return self.__assignment()
+
+    def equality(self) -> Expr:
         expression = self.comparison()
 
         while self.__match(OperatorTokenType.BANG_EQUAL, OperatorTokenType.EQUAL_EQUAL):
@@ -33,7 +86,7 @@ class Parser:
         return expression
 
 
-    def comparison(self) -> Expression:
+    def comparison(self) -> Expr:
         expression = self.term()
 
         while self.__match(OperatorTokenType.GREATER, OperatorTokenType.GREATER_EQUAL,
@@ -44,7 +97,7 @@ class Parser:
 
         return expression
 
-    def term(self) -> Expression:
+    def term(self) -> Expr:
         expression = self.factor()
 
         while self.__match(SingleCharTokenType.MINUS, SingleCharTokenType.PLUS):
@@ -54,7 +107,7 @@ class Parser:
 
         return expression
 
-    def factor(self) -> Expression:
+    def factor(self) -> Expr:
 
         expression = self.unary()
 
@@ -64,7 +117,7 @@ class Parser:
             expression = Binary(left=expression, operator=operator, right=right)
         return expression
 
-    def unary(self) -> Expression:
+    def unary(self) -> Expr:
 
         if self.__match(OperatorTokenType.BANG, SingleCharTokenType.MINUS):
             operator = self.__previous()
@@ -73,7 +126,7 @@ class Parser:
 
         return self.primary() 
 
-    def primary(self) -> Expression:
+    def primary(self) -> Expr:
 
         if self.__match(KeywordTokens.FALSE):
             return Literal(value=False)
@@ -84,6 +137,9 @@ class Parser:
 
         if self.__match(LiteralTokenType.NUMBER, LiteralTokenType.STRING):
             return Literal(self.__previous().literal)
+
+        if self.__match(LiteralTokenType.IDENTIFIER):
+            return Variable(self.__previous())
 
         if self.__match(SingleCharTokenType.LEFT_PAREN):
             expression = self.expression()

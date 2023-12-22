@@ -1,20 +1,24 @@
-from typing import Any
+from typing import Any, List
 
-from .expression import Binary, Expression, ExpressionVisitor, Grouping, Literal, Unary
+from ..environment import Environment
+
+from .expression import Assign, Binary, Expr, ExprVisitor, Grouping, Literal, Unary, Variable
+from .statements import Expression, Print, Stmt, StmtVisitor, Var
 from ..exceptions import PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
 
 
-class Interpreter(ExpressionVisitor):
+class Interpreter(ExprVisitor, StmtVisitor):
 
     def __init__(self, logger: Logger) -> None:
+        self.__env = Environment()
         self.__logger = logger
 
-    def interpret(self, expression: Expression):
+    def interpret(self, statements: List[Stmt]):
         try:
-            value = self.__evaluate(expression=expression)
-            self.__logger.info(self.__stringfy(value))
+            for stmt in statements:
+                self.__execute(stmt)
         except PyNoxRuntimeError as error:
             self.__logger.error(str(error))
 
@@ -25,8 +29,11 @@ class Interpreter(ExpressionVisitor):
             return str(obj).lower()
         return str(obj)
 
-    def __evaluate(self, expression: Expression):
+    def __evaluate(self, expression: Expr):
         return expression.accept(self)
+
+    def __execute(self, stmt: Stmt) -> None:
+        stmt.accept(self)
 
     def __is_truthy(self, obj: Any):
         return bool(obj)
@@ -41,6 +48,30 @@ class Interpreter(ExpressionVisitor):
             if not isinstance(operand, (int, float)):
                 raise PyNoxRuntimeError(message=f"{operator} must be a number.")
         return None
+
+    def visit_expr_stmt(self, stmt: Expression) -> None:
+        self.__evaluate(stmt.expression)
+        return None
+
+    def visit_print_stmt(self, stmt: Print) -> None:
+        value = self.__evaluate(stmt.expression)
+        self.__logger.info(self.__stringfy(value))
+        return None
+
+    def visit_var_stmt(self, stmt: Var) -> None:
+        value = None
+        if stmt.initializer is not None:
+            value = self.__evaluate(stmt.initializer)
+        self.__env.define(name=stmt.name, value=value)
+        return None
+
+    def visit_variable_expr(self, expression: Variable) -> Any:
+        return self.__env.get(expression.name)
+
+    def visit_assign_expr(self, expression: Assign) -> Any:
+        value = self.__evaluate(expression.value)
+        self.__env.assign(expression.name, value)
+        return value
 
     def visit_literal(self, expression: Literal) -> Any:
         return expression.value
@@ -88,7 +119,7 @@ class Interpreter(ExpressionVisitor):
                     return left + right
 
                 if isinstance(left, str) and isinstance(right, str):
-                    return str(left) + str(str)
+                    return str(left) + str(right)
 
                 raise RuntimeError(f"{expression.operator}. Operands must be two numbers or two strings.")
             case SingleCharTokenType.SLASH:
