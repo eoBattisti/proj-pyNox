@@ -2,8 +2,8 @@ from typing import Any, List
 
 from ..environment import Environment
 
-from .expression import Assign, Binary, Expr, ExprVisitor, Grouping, Literal, Unary, Variable
-from .statements import Expression, Print, Stmt, StmtVisitor, Var
+from .expression import Assign, Binary, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
+from .statements import Block, Expression, If, Print, Stmt, StmtVisitor, Var
 from ..exceptions import PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
@@ -35,6 +35,19 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def __execute(self, stmt: Stmt) -> None:
         stmt.accept(self)
 
+    def __execute_block(self, stmts: List[Stmt], env: Environment) -> None:
+        previous: Environment = self.__env
+        try:
+            self.__env = env
+            for stmt in stmts:
+                self.__execute(stmt)
+        finally:
+            self.__env = previous
+
+    def visit_block_stmt(self, stmt: Block) -> None:
+        self.__execute_block(stmt.statements, Environment(self.__env))
+        return None
+
     def __is_truthy(self, obj: Any):
         return bool(obj)
 
@@ -51,6 +64,13 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visit_expr_stmt(self, stmt: Expression) -> None:
         self.__evaluate(stmt.expression)
+        return None
+
+    def visit_if_stmt(self, stmt: If) -> None:
+        if self.__is_truthy(self.__evaluate(stmt.condition)):
+            self.__execute(stmt.then_branch)
+        elif stmt.else_branch is not None:
+            self.__execute(stmt.else_branch)
         return None
 
     def visit_print_stmt(self, stmt: Print) -> None:
@@ -75,6 +95,18 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def visit_literal(self, expression: Literal) -> Any:
         return expression.value
+
+    def visit_logical_expr(self, expression: Logical) -> Any:
+        left = self.__evaluate(expression.left)
+
+        if expression.operator.token_type == KeywordTokens.OR:
+            if self.__is_truthy(left):
+                return left
+        else:
+            if not self.__is_truthy(left):
+                return left
+
+        return self.__evaluate(expression.right)
 
     def visit_grouping(self, expression: Grouping) -> Any:
         return self.__evaluate(expression.expression)

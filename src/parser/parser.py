@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Optional
 
 from ..exceptions import PyNoxParserError
-from ..interpreter.expression import Assign, Binary, Expr, Grouping, Literal, Unary, Variable
+from ..interpreter.expression import Assign, Binary, Expr, Grouping, Literal, Logical, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
-from ..interpreter.statements import Print, Stmt, Expression, Var
+from ..interpreter.statements import Block, If, Print, Stmt, Expression, Var
 
 
 class Parser:
@@ -34,10 +34,28 @@ class Parser:
             return None
 
     def __statement(self) -> Stmt: 
+        if self.__match(KeywordTokens.IF):
+            return self.__if_stmt()
         if self.__match(KeywordTokens.PRINT):
             return self.__print_stmt()
+        if self.__match(SingleCharTokenType.LEFT_BRACE):
+            return Block(self.__block())
 
         return self.__expression_stmt()
+
+    def __if_stmt(self) -> Stmt:
+        self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'if'. ")
+        condition: Expr = self.expression()
+        self.__consume(SingleCharTokenType.RIGHT_PAREN, "Expected ')' after 'if'. ")
+
+        then_branch: Stmt = self.__statement()
+        else_branch: Optional[Stmt] = None
+
+        if self.__match(KeywordTokens.ELSE):
+            else_branch = self.__statement()
+
+        return If(condition=condition, then_branch=then_branch, else_branch=else_branch)
+
 
     def __print_stmt(self) -> Stmt:
         value = self.expression()
@@ -59,9 +77,18 @@ class Parser:
         expression = self.expression()
         self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after value.")
         return Expression(expression)
+    
+    def __block(self) -> List[Stmt]:
+        statements = []
+
+        while not self.__check(SingleCharTokenType.RIGHT_BRACE) and not self.__is_at_end():
+            statements.append(self.__declaration())
+
+        self.__consume(SingleCharTokenType.RIGHT_BRACE, "Expected '}' after block.")
+        return statements
 
     def __assignment(self) -> Expr:
-        expression = self.equality()
+        expression = self.__or()
 
         if self.__match(OperatorTokenType.EQUAL):
             equals: Token = self.__previous()
@@ -72,6 +99,26 @@ class Parser:
             self.__error(token=equals, message="Invalid assignmnet target.")
 
         return expression
+
+    def __or(self) -> Expr:
+        expr = self.__and()
+
+        while self.__match(KeywordTokens.OR):
+            operator = self.__previous()
+            right = self.__and()
+            expr = Logical(operator=operator, right=right, left=expr)
+
+        return expr
+
+    def __and(self) -> Expr:
+        expr = self.equality()
+
+        while self.__match(KeywordTokens.AND):
+            operator = self.__previous()
+            right = self.equality()
+            expr = Logical(operator=operator, right=right, left=expr)
+
+        return expr
 
     def expression(self) -> Expr:
         return self.__assignment()

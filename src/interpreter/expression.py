@@ -22,6 +22,9 @@ class ExprVisitor(Protocol):
     def visit_assign_expr(self, expression) -> Any:
         pass
 
+    def visit_logical_expr(self, expression) -> Any:
+        pass
+
 
 class Expr(Protocol):
 
@@ -72,6 +75,15 @@ class Variable(Expr):
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_variable_expr(self)
 
+class Logical(Expr):
+
+    def __init__(self, left: Expr, operator: Token, right: Expr) -> None:
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_logical_expr(self)
 
 class Assign(Expr):
 
