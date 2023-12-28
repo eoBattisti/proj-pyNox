@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from ..exceptions import PyNoxParserError
-from ..interpreter.expression import Assign, Binary, Expr, Grouping, Literal, Logical, Unary, Variable
+from ..interpreter.expression import Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
 from ..interpreter.statements import Block, If, Print, Stmt, Expression, Var, While
@@ -223,7 +223,34 @@ class Parser:
             right = self.unary()
             return Unary(operator=operator, right=right)
 
-        return self.primary() 
+        return self.call() 
+
+    def __finish_call(self, callee: Expr):
+        arguments = []
+        
+        if not self.__check(SingleCharTokenType.RIGHT_PAREN):
+            while True:
+                if len(arguments) >= 255:
+                    self.__error(self.__peek(), "Can't have more than 255 arguments ")
+                arguments.append(self.expression())
+                if not self.__match(SingleCharTokenType.COMMA):
+                    break
+
+        paren = self.__consume(SingleCharTokenType.RIGHT_PAREN, "Expect ')' after arguments.")
+
+        return Call(callee=callee, paren=paren, arguments=arguments)
+
+    def call(self) -> Expr:
+
+        expr = self.primary()
+
+        while True:
+            if self.__match(SingleCharTokenType.LEFT_PAREN):
+                expr = self.__finish_call(callee=expr)
+            else:
+                break
+
+        return expr
 
     def primary(self) -> Expr:
 

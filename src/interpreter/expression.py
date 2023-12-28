@@ -1,4 +1,4 @@
-from typing import Any, Protocol
+from typing import Any, List, Protocol
 
 from ..lexer.tokens import Token
 
@@ -23,6 +23,9 @@ class ExprVisitor(Protocol):
         pass
 
     def visit_logical_expr(self, expression) -> Any:
+        pass
+
+    def visit_call_expr(self, expression) -> Any:
         pass
 
 
@@ -93,3 +96,13 @@ class Assign(Expr):
 
     def accept(self, visitor: ExprVisitor) -> Any:
         return visitor.visit_assign_expr(self)
+
+class Call(Expr):
+
+    def __init__(self, callee: Expr, paren: Token, arguments: List[Expr]) -> None:
+        self.callee = callee
+        self.paren = paren
+        self.arguments = arguments
+
+    def accept(self, visitor: ExprVisitor) -> Any:
+        return visitor.visit_call_expr(self)

@@ -2,17 +2,19 @@ from typing import Any, List
 
 from ..environment import Environment
 
-from .expression import Assign, Binary, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
+from .expression import Assign, Binary, Call, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
 from .statements import Block, Expression, If, Print, Stmt, StmtVisitor, Var, While
 from ..exceptions import PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
+from ..utils.callable import PyNoxCallable
 
 
 class Interpreter(ExprVisitor, StmtVisitor):
 
     def __init__(self, logger: Logger) -> None:
-        self.__env = Environment()
+        self.__globals = Environment()
+        self.__env = self.__globals
         self.__logger = logger
 
     def interpret(self, statements: List[Stmt]):
@@ -166,4 +168,21 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 return left * right
 
         return None
+
+    def visit_call_expr(self, expr: Call) -> Any:
+        callee = self.__evaluate(expr.callee)
+
+        arguments = [self.__evaluate(arg) for arg in expr.arguments]
+
+        if not isinstance(callee, PyNoxCallable):
+            raise PyNoxRuntimeError(f"{expr.paren}, Can only call function and classes")
+
+        if len(arguments) != callee.arity:
+            raise PyNoxRuntimeError(f"Expected {callee.arity} arguments but got {len(arguments)}")
+
+        try:
+            return callee(interpreter=self, arguments=arguments)
+        except Exception as e:
+            self.__logger.error(f"Error calling function")
+            raise PyNoxRuntimeError(f"{expr.paren}, Can only call function and classes"))
 
