@@ -4,7 +4,7 @@ from ..exceptions import PyNoxParserError
 from ..interpreter.expression import Assign, Binary, Expr, Grouping, Literal, Logical, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
-from ..interpreter.statements import Block, If, Print, Stmt, Expression, Var
+from ..interpreter.statements import Block, If, Print, Stmt, Expression, Var, While
 
 
 class Parser:
@@ -34,14 +34,57 @@ class Parser:
             return None
 
     def __statement(self) -> Stmt: 
+        if self.__match(KeywordTokens.FOR):
+            return self.__for_stmt()
         if self.__match(KeywordTokens.IF):
             return self.__if_stmt()
         if self.__match(KeywordTokens.PRINT):
             return self.__print_stmt()
+        if self.__match(KeywordTokens.WHILE):
+            return self.__while_stmt()
         if self.__match(SingleCharTokenType.LEFT_BRACE):
             return Block(self.__block())
 
         return self.__expression_stmt()
+
+    def __for_stmt(self) -> Stmt:
+        self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'for'. ")
+
+        initializer: Optional[Stmt] = None
+        if self.__match(SingleCharTokenType.SEMICOLON):
+            initializer = None
+        elif self.__match(KeywordTokens.VAR):
+            initializer = self.__var_declaration()
+        else:
+            initializer = self.__expression_stmt()
+
+        condition: Optional[Expr] = None
+        if not self.__match(SingleCharTokenType.SEMICOLON):
+            condition = self.expression()
+        self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after loop condition.")
+
+        increment: Optional[Expr] = None
+        if not self.__match(SingleCharTokenType.RIGHT_PAREN):
+            increment = self.expression()
+
+        self.__consume(SingleCharTokenType.RIGHT_PAREN, "Expected ')' after for clause.")
+
+        body = self.__statement()
+
+        if increment is not None:
+            body = Block(stmts=[body, Expression(increment)])
+
+        if condition is None:
+            condition = Literal(True)
+
+        body = While(condition=condition, body=body)
+
+        if initializer is not None:
+            body = Block(stmts=[initializer, body])
+
+        return body
+
+
 
     def __if_stmt(self) -> Stmt:
         self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'if'. ")
@@ -71,6 +114,15 @@ class Parser:
 
         self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after variable declaration.")
         return Var(name=name, initializer=initializer)
+
+    def __while_stmt(self) -> Stmt:
+        self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'while'.")
+        condition = self.expression()
+        self.__consume(SingleCharTokenType.RIGHT_PAREN, "Expected ')' after 'while'.")
+
+        body = self.__statement()
+
+        return While(condition=condition, body=body)
 
 
     def __expression_stmt(self) -> Stmt:

@@ -3,7 +3,7 @@ from typing import Any, List
 from ..environment import Environment
 
 from .expression import Assign, Binary, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
-from .statements import Block, Expression, If, Print, Stmt, StmtVisitor, Var
+from .statements import Block, Expression, If, Print, Stmt, StmtVisitor, Var, While
 from ..exceptions import PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
@@ -83,6 +83,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
         if stmt.initializer is not None:
             value = self.__evaluate(stmt.initializer)
         self.__env.define(name=stmt.name, value=value)
+        return None
+
+    def visit_while_stmt(self, stmt: While) -> None:
+        while self.__is_truthy(self.__evaluate(stmt.condition)):
+            self.__execute(stmt.body)
         return None
 
     def visit_variable_expr(self, expression: Variable) -> Any:
