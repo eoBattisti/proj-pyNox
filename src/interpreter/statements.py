@@ -26,6 +26,9 @@ class StmtVisitor(Protocol):
     def visit_function_stmt(self, stmt):
         pass
 
+    def visit_return_stmt(self, stmt):
+        pass
+
 
 class Stmt(Protocol):
 
@@ -95,3 +98,13 @@ class While(Stmt):
 
     def accept(self, visitor: StmtVisitor):
         return visitor.visit_while_stmt(self)
+
+
+class Return(Stmt):
+
+    def __init__(self, keyword: Token, value: Expr) -> None:
+        self.keyword = keyword
+        self.value = value
+
+    def accept(self, visitor: StmtVisitor):
+        return visitor.visit_return_stmt(self)

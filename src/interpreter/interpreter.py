@@ -3,8 +3,8 @@ from typing import Any, List
 from ..environment import Environment
 
 from .expression import Assign, Binary, Call, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
-from .statements import Block, Expression, Function, If, Print, Stmt, StmtVisitor, Var, While
-from ..exceptions import PyNoxRuntimeError
+from .statements import Block, Expression, Function, If, Print, Return, Stmt, StmtVisitor, Var, While
+from ..exceptions import PyNoxException, PyNoxReturnError, PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
 from ..utils.callable import PyNoxCallable, PyNoxFunction
@@ -23,6 +23,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self.__execute(stmt)
         except PyNoxRuntimeError as error:
             self.__logger.error(str(error))
+
+    def error(self, token: "Token", message: str, /) -> str:
+        """Raise a runtime error."""
+        error_ = f"{str(message)}"
+        return f"RuntimeError at line {token.line}: {error_}"
+
 
     def __stringfy(self, obj: Any) -> str:
         if not obj:
@@ -84,6 +90,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         value = self.__evaluate(stmt.expression)
         self.__logger.info(self.__stringfy(value))
         return None
+
+    def visit_return_stmt(self, stmt: Return) -> None:
+        value = None
+
+        if stmt.value is not None:
+            value = self.__evaluate(stmt.value)
+
+        raise PyNoxReturnError(self.error(stmt.keyword, f"{stmt.keyword} Return {self.__stringfy(value)}"), value=value)
 
     def visit_var_stmt(self, stmt: Var) -> None:
         value = None
@@ -186,7 +200,8 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
         try:
             return callee(interpreter=self, arguments=arguments)
-        except Exception as e:
+        except PyNoxException as e:
+            print(e)
             self.__logger.error(f"Error calling function")
             raise PyNoxRuntimeError(f"{expression.paren}, Can only call function and classes")
 

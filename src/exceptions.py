@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Any
 
 __all__ = ("PyNoxException",
            "PyNoxSyntaxError")
@@ -51,4 +52,11 @@ class PyNoxSyntaxError(PyNoxException):
 class PyNoxParserError(PyNoxException):
 
     def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_USAGE):
+        super().__init__(message, error_type)
+
+
+class PyNoxReturnError(PyNoxException):
+
+    def __init__(self, message: str, value: Any, error_type: ErrorTypes = ErrorTypes.EX_SOFTWARE):
+        self.value = value
         super().__init__(message, error_type)

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Any
 
+from ..exceptions import PyNoxReturnError
+
 
 from ..interpreter.statements import Function
 from ..environment import Environment
@@ -41,5 +43,8 @@ class PyNoxFunction(PyNoxCallable):
         env: Environment = Environment(enclosing=self.closure)
         for param, arg in zip(self.declaration.params, arguments):
             env.define(name=param, value=arg)
-        interpreter._execute_block(stmts=self.declaration.body, env=env)
+        try:
+            interpreter._execute_block(stmts=self.declaration.body, env=env)
+        except PyNoxReturnError as return_value:
+            return return_value.value
         return None

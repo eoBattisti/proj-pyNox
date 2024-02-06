@@ -4,7 +4,7 @@ from ..exceptions import PyNoxParserError
 from ..interpreter.expression import Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
-from ..interpreter.statements import Block, Function, If, Print, Stmt, Expression, Var, While
+from ..interpreter.statements import Block, Function, If, Print, Return, Stmt, Expression, Var, While
 
 
 class Parser:
@@ -42,6 +42,8 @@ class Parser:
             return self.__if_stmt()
         if self.__match(KeywordTokens.PRINT):
             return self.__print_stmt()
+        if self.__match(KeywordTokens.RETURN):
+            return self.__return_stmt()
         if self.__match(KeywordTokens.WHILE):
             return self.__while_stmt()
         if self.__match(SingleCharTokenType.LEFT_BRACE):
@@ -106,6 +108,17 @@ class Parser:
         value = self.expression()
         self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after value.")
         return Print(value)
+
+    def __return_stmt(self) -> Stmt:
+        keyword: Token = self.__previous()
+        value = None
+
+        if not self.__check(SingleCharTokenType.SEMICOLON):
+            value = self.expression()
+
+        self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after value.")
+        return Return(keyword=keyword, value=value)
+
 
     def __var_declaration(self) -> Stmt:
         name = self.__consume(LiteralTokenType.IDENTIFIER, "Expected variable name.")
