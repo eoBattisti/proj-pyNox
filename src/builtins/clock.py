@@ -12,5 +12,6 @@ class Clock(BuiltInCallable):
     def __call__(self, interpreter: "Interpreter", arguments: List[Any]) -> float:
         return time.time()
 
+    @property
     def arity(self):
         return 0

@@ -23,6 +23,9 @@ class StmtVisitor(Protocol):
     def visit_while_stmt(self, stmt):
         pass
 
+    def visit_function_stmt(self, stmt):
+        pass
+
 
 class Stmt(Protocol):
 
@@ -55,6 +58,17 @@ class Expression(Stmt):
 
     def accept(self, visitor: StmtVisitor):
         return visitor.visit_expr_stmt(self)
+
+
+class Function(Stmt):
+
+    def __init__(self, name: Token, params: List[Token], body: List[Stmt]) -> None:
+        self.name = name
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor: StmtVisitor):
+        return visitor.visit_function_stmt(self)
 
 class Print(Stmt):
 

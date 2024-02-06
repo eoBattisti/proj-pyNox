@@ -4,7 +4,7 @@ from ..exceptions import PyNoxParserError
 from ..interpreter.expression import Assign, Binary, Call, Expr, Grouping, Literal, Logical, Unary, Variable
 from ..lexer.tokens import EOFTokenType, KeywordTokens, LiteralTokenType, OperatorTokenType, SingleCharTokenType, Token, TokenType
 from ..logger import Logger
-from ..interpreter.statements import Block, If, Print, Stmt, Expression, Var, While
+from ..interpreter.statements import Block, Function, If, Print, Stmt, Expression, Var, While
 
 
 class Parser:
@@ -26,6 +26,8 @@ class Parser:
 
     def __declaration(self) -> Stmt:
         try:
+            if self.__match(KeywordTokens.FUNCTION):
+                return self.__function_declaration("function")
             if self.__match(KeywordTokens.VAR):
                 return self.__var_declaration()
             return self.__statement()
@@ -114,6 +116,24 @@ class Parser:
 
         self.__consume(SingleCharTokenType.SEMICOLON, "Expected ';' after variable declaration.")
         return Var(name=name, initializer=initializer)
+
+    def __function_declaration(self, kind: str) :
+        name: Token = self.__consume(LiteralTokenType.IDENTIFIER, f"Expect {kind} name")
+        self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'while'.")
+        parameters: List[Token] = []
+        if (not self.__check(SingleCharTokenType.RIGHT_PAREN)):
+            while True:
+                if len(parameters) >= 255:
+                    self.__error(self.__peek(), "Can't have more than 255 parameters")
+
+                parameters.append(self.__consume(LiteralTokenType.IDENTIFIER, "Expect parameter name"))
+                if not self.__match(SingleCharTokenType.COMMA):
+                    break
+        self.__consume(SingleCharTokenType.RIGHT_PAREN, "Expected ')' after 'while'.")
+        self.__consume(SingleCharTokenType.LEFT_BRACE, "Expect '{' before " + f"{kind} body.")
+        body: List[Stmt] = self.__block()
+        return Function(name, parameters, body)
+
 
     def __while_stmt(self) -> Stmt:
         self.__consume(SingleCharTokenType.LEFT_PAREN, "Expected '(' after 'while'.")

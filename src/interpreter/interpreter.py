@@ -3,11 +3,11 @@ from typing import Any, List
 from ..environment import Environment
 
 from .expression import Assign, Binary, Call, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable
-from .statements import Block, Expression, If, Print, Stmt, StmtVisitor, Var, While
+from .statements import Block, Expression, Function, If, Print, Stmt, StmtVisitor, Var, While
 from ..exceptions import PyNoxRuntimeError
 from ..logger import Logger
 from ..lexer.tokens import KeywordTokens, OperatorTokenType, SingleCharTokenType, Token
-from ..utils.callable import PyNoxCallable
+from ..utils.callable import PyNoxCallable, PyNoxFunction
 
 
 class Interpreter(ExprVisitor, StmtVisitor):
@@ -37,7 +37,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def __execute(self, stmt: Stmt) -> None:
         stmt.accept(self)
 
-    def __execute_block(self, stmts: List[Stmt], env: Environment) -> None:
+    def _execute_block(self, stmts: List[Stmt], env: Environment) -> None:
         previous: Environment = self.__env
         try:
             self.__env = env
@@ -47,7 +47,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
             self.__env = previous
 
     def visit_block_stmt(self, stmt: Block) -> None:
-        self.__execute_block(stmt.statements, Environment(self.__env))
+        self._execute_block(stmt.statements, Environment(self.__env))
         return None
 
     def __is_truthy(self, obj: Any):
@@ -67,6 +67,11 @@ class Interpreter(ExprVisitor, StmtVisitor):
     def visit_expr_stmt(self, stmt: Expression) -> None:
         self.__evaluate(stmt.expression)
         return None
+
+    def visit_function_stmt(self, stmt: Function) -> None:
+        fn: PyNoxFunction = PyNoxFunction(declaration=stmt, closure=self.__env, is_initializer=False)
+        self.__env.define(name=stmt.name, value=fn)
+
 
     def visit_if_stmt(self, stmt: If) -> None:
         if self.__is_truthy(self.__evaluate(stmt.condition)):
@@ -169,13 +174,12 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
         return None
 
-    def visit_call_expr(self, expr: Call) -> Any:
-        callee = self.__evaluate(expr.callee)
-
-        arguments = [self.__evaluate(arg) for arg in expr.arguments]
+    def visit_call_expr(self, expression: Call) -> Any:
+        callee = self.__evaluate(expression.callee)
+        arguments = [self.__evaluate(arg) for arg in expression.arguments]
 
         if not isinstance(callee, PyNoxCallable):
-            raise PyNoxRuntimeError(f"{expr.paren}, Can only call function and classes")
+            raise PyNoxRuntimeError(f"{expression.paren}, Can only call function and classes")
 
         if len(arguments) != callee.arity:
             raise PyNoxRuntimeError(f"Expected {callee.arity} arguments but got {len(arguments)}")
@@ -184,5 +188,5 @@ class Interpreter(ExprVisitor, StmtVisitor):
             return callee(interpreter=self, arguments=arguments)
         except Exception as e:
             self.__logger.error(f"Error calling function")
-            raise PyNoxRuntimeError(f"{expr.paren}, Can only call function and classes"))
+            raise PyNoxRuntimeError(f"{expression.paren}, Can only call function and classes")
 
