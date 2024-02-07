@@ -24,7 +24,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
         except PyNoxRuntimeError as error:
             self.__logger.error(str(error))
 
-    def error(self, token: "Token", message: str, /) -> str:
+    def error(self, token: "Token", message: str) -> str:
         """Raise a runtime error."""
         error_ = f"{str(message)}"
         return f"RuntimeError at line {token.line}: {error_}"

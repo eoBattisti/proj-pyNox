@@ -1,7 +1,7 @@
 
-from typing import Dict, List
+from typing import Dict, List, Sequence, Union
 from .statements import Block, Stmt, StmtVisitor, Var
-from .expression import Expr, ExprVisitor
+from .expression import Expr, ExprVisitor, Variable 
 from .interpreter import Interpreter
 from ..lexer.tokens import Token
 
@@ -32,15 +32,18 @@ class Resolver(ExprVisitor, StmtVisitor):
     def _end_scope(self) -> None:
         self.__scopes.pop()
 
-    def _resolve(self, statements: List[Stmt]) -> None:
+    def _resolve(self, statements: Sequence[Union[Stmt, Expr]]) -> None:
         for stmt in statements:
-            self._resolve_stmt(stmt)
+            self.__resolve(stmt)
 
-    def _resolve_stmt(self, stmt: Stmt) -> None:
-            stmt.accept(self)
+    def __resolve(self, stmt: Union[Stmt, Expr]) -> None:
+        stmt.accept(self)
 
-    def _resolve_expr(self, expression: Expr) -> None:
-        expression.accept(self)
+    def _resolve_local_expr(self, expression: Expr, name: Token) - None:
+        for i, scope in enumerate(reversed(self.__scopes)):
+            if name.lexeme in scope:
+                self.__interpreter._resolve(expression, i)
+                return None
 
     def visit_block_stmt(self, stmt: Block) -> None:
         self._begin_scope()
@@ -52,6 +55,12 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_var_stmt(self, stmt: Var) -> None:
         self._declare(stmt.name)
         if stmt.initializer is not None:
-            self._resolve_expr(stmt.initializer)
+            self.__resolve(stmt.initializer)
         self._define(stmt.name)
+        return None
+
+    def visit_variable_expr(self, expression: Variable) -> None:
+        if self.__scopes and self.__scopes[-1].get(expression.name.lexeme) is False:
+            self.__interpreter.error(token=expression.name, message="Can't read local variable in its own initializer.")
+        self._resolve_local(expression, expression.name)
         return None
