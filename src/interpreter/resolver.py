@@ -1,6 +1,6 @@
 
 from typing import Dict, List, Sequence, Union
-from .statements import Block, Stmt, StmtVisitor, Var
+from .statements import Block, Function, Stmt, StmtVisitor, Var
 from .expression import Assign, Expr, ExprVisitor, Variable 
 from .interpreter import Interpreter
 from ..lexer.tokens import Token
@@ -45,27 +45,36 @@ class Resolver(ExprVisitor, StmtVisitor):
                 self.__interpreter._resolve(expression, i)
                 return None
 
-    def visit_block_stmt(self, stmt: Block) -> None:
+    def _resolve_function(self, function: Function) -> None:
         self._begin_scope()
-        self._resolve(stmt.statements)
+        for param in function.params:
+            self._declare(name=param)
+            self._define(name=param)
+
+        self._resolve(statements=function.body)
         self._end_scope()
 
-        return None
+    def visit_block_stmt(self, stmt: Block) -> None:
+        self._begin_scope()
+        self._resolve(statements=stmt.statements)
+        self._end_scope()
 
     def visit_var_stmt(self, stmt: Var) -> None:
-        self._declare(stmt.name)
+        self._declare(name=stmt.name)
         if stmt.initializer is not None:
-            self.__resolve(stmt.initializer)
-        self._define(stmt.name)
-        return None
+            self.__resolve(stmt=stmt.initializer)
+        self._define(name=stmt.name)
+
+    def visit_function_stmt(self, stmt: Function):
+        self._declare(name=stmt.name)
+        self._define(name=stmt.name)
+        self._resolve_function(function=stmt)
 
     def visit_variable_expr(self, expression: Variable) -> None:
         if self.__scopes and self.__scopes[-1].get(expression.name.lexeme) is False:
             self.__interpreter.error(token=expression.name, message="Can't read local variable in its own initializer.")
-        self._resolve_local_expr(expression, expression.name)
-        return None
+        self._resolve_local_expr(expression=expression, name=expression.name)
 
     def visit_assign_expr(self, expression: Assign) -> None:
-        self.__resolve(expression.value)
-        self._resolve_local_expr(expression, expression.name)
-        return None
+        self.__resolve(stmt=expression.value)
+        self._resolve_local_expr(expression=expression, name=expression.name)
