@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, Dict, List
 
 from ..environment import Environment
 
@@ -14,6 +14,7 @@ class Interpreter(ExprVisitor, StmtVisitor):
 
     def __init__(self, logger: Logger) -> None:
         self.__globals = Environment()
+        self.__locals: Dict[Expr, int] = {}
         self.__env = self.__globals
         self.__logger = logger
 
@@ -29,6 +30,14 @@ class Interpreter(ExprVisitor, StmtVisitor):
         error_ = f"{str(message)}"
         return f"RuntimeError at line {token.line}: {error_}"
 
+    def look_up_variable(self, name: Token, expression: Expr) -> Any:
+        distance = self.__locals.get(expression)
+        if distance is not None:
+            return self.__env.get_at(distance=distance, lexeme=name.lexeme)
+        return self.__globals.get(name=name)
+
+    def _resolve(self, expression: Expr, depth: int) -> None:
+        self.__locals[expression] = depth
 
     def __stringfy(self, obj: Any) -> str:
         if not obj:
@@ -51,7 +60,6 @@ class Interpreter(ExprVisitor, StmtVisitor):
                 self.__execute(stmt)
         finally:
             self.__env = previous
-
     def visit_block_stmt(self, stmt: Block) -> None:
         self._execute_block(stmt.statements, Environment(self.__env))
         return None
@@ -112,11 +120,16 @@ class Interpreter(ExprVisitor, StmtVisitor):
         return None
 
     def visit_variable_expr(self, expression: Variable) -> Any:
-        return self.__env.get(expression.name)
+        return self.look_up_variable(expression.name, expression)
 
     def visit_assign_expr(self, expression: Assign) -> Any:
         value = self.__evaluate(expression.value)
-        self.__env.assign(expression.name, value)
+        distance: int = self.__locals.get(expression)
+
+        if distance is not None:
+            self.__env.assign_at(distance=distance, name=expression.name, value=value)
+        else:
+            self.__globals.assign(name=expression.name, value=value)
         return value
 
     def visit_literal(self, expression: Literal) -> Any:
