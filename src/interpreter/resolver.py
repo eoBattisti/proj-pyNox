@@ -1,7 +1,7 @@
 
 from typing import Dict, List, Sequence, Union
 from .statements import Block, Stmt, StmtVisitor, Var
-from .expression import Expr, ExprVisitor, Variable 
+from .expression import Assign, Expr, ExprVisitor, Variable 
 from .interpreter import Interpreter
 from ..lexer.tokens import Token
 
@@ -62,5 +62,10 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_variable_expr(self, expression: Variable) -> None:
         if self.__scopes and self.__scopes[-1].get(expression.name.lexeme) is False:
             self.__interpreter.error(token=expression.name, message="Can't read local variable in its own initializer.")
-        self._resolve_local(expression, expression.name)
+        self._resolve_local_expr(expression, expression.name)
+        return None
+
+    def visit_assign_expr(self, expression: Assign) -> None:
+        self.__resolve(expression.value)
+        self._resolve_local_expr(expression, expression.name)
         return None
