@@ -60,3 +60,9 @@ class PyNoxReturnError(PyNoxException):
     def __init__(self, message: str, value: Any, error_type: ErrorTypes = ErrorTypes.EX_SOFTWARE):
         self.value = value
         super().__init__(message, error_type)
+
+
+class PyNoxResolutionError(PyNoxException):
+
+    def __init__(self, message: str, error_type: ErrorTypes = ErrorTypes.EX_SOFTWARE):
+        super().__init__(message, error_type)

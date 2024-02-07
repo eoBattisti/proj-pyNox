@@ -1,9 +1,11 @@
-
 from typing import Dict, List, Sequence, Union
+
 from .statements import Block, Expression, Function, If, Print, Return, Stmt, StmtVisitor, Var, While
 from .expression import Assign, Binary, Call, Expr, ExprVisitor, Grouping, Literal, Logical, Unary, Variable 
 from .interpreter import Interpreter
+from ..exceptions import PyNoxResolutionError
 from ..lexer.tokens import Token
+from ..utils.callable_types import FunctionType
 
 
 class Resolver(ExprVisitor, StmtVisitor):
@@ -11,6 +13,7 @@ class Resolver(ExprVisitor, StmtVisitor):
     def __init__(self, interpreter: Interpreter) -> None:
         self.__interpreter = interpreter
         self.__scopes: List[Dict[str, bool]] = [] 
+        self.current_fn: FunctionType = FunctionType.NONE 
 
     def _begin_scope(self) -> None:
         self.__scopes.append({})
@@ -20,6 +23,10 @@ class Resolver(ExprVisitor, StmtVisitor):
             return None
 
         scope = self.__scopes[-1]
+        if name.lexeme in scope:
+            raise PyNoxResolutionError(
+                self.__interpreter.error(name, f"Variable '{name.lexeme}' already declared in this scope!")
+            )
         scope[name.lexeme] = False
 
     def _define(self, name: Token) -> None:
@@ -39,13 +46,15 @@ class Resolver(ExprVisitor, StmtVisitor):
     def __resolve(self, stmt: Union[Stmt, Expr]) -> None:
         stmt.accept(self)
 
-    def _resolve_local_expr(self, expression: Expr, name: Token) - None:
+    def _resolve_local_expr(self, expression: Expr, name: Token) -> None:
         for i, scope in enumerate(reversed(self.__scopes)):
             if name.lexeme in scope:
                 self.__interpreter._resolve(expression, i)
                 return None
 
-    def _resolve_function(self, function: Function) -> None:
+    def _resolve_function(self, function: Function, type: FunctionType) -> None:
+        enclosing_fn: FunctionType = self.current_fn
+        self.current_fn = type
         self._begin_scope()
         for param in function.params:
             self._declare(name=param)
@@ -53,6 +62,7 @@ class Resolver(ExprVisitor, StmtVisitor):
 
         self._resolve(statements=function.body)
         self._end_scope()
+        self.current_fn = enclosing_fn
 
 
     def visit_block_stmt(self, stmt: Block) -> None:
@@ -66,7 +76,7 @@ class Resolver(ExprVisitor, StmtVisitor):
     def visit_function_stmt(self, stmt: Function):
         self._declare(name=stmt.name)
         self._define(name=stmt.name)
-        self._resolve_function(function=stmt)
+        self._resolve_function(function=stmt, type=FunctionType.FUNCTION)
 
     def visit_if_stmt(self, stmt: If) -> None:
         self.__resolve(stmt.condition)
@@ -78,6 +88,8 @@ class Resolver(ExprVisitor, StmtVisitor):
         self.__resolve(stmt.expression)
 
     def visit_return_stmt(self, stmt: Return) -> None:
+        if self.current_fn == FunctionType.NONE:
+            raise PyNoxResolutionError(self.__interpreter.error(stmt.keyword, "Can't return from top-level code."))
         if stmt.value is not None:
             self.__resolve(stmt.value)
 
@@ -118,7 +130,6 @@ class Resolver(ExprVisitor, StmtVisitor):
 
     def visit_unary(self, expression: Unary) -> None:
         self.__resolve(expression.right)
-
 
     def visit_variable_expr(self, expression: Variable) -> None:
         if self.__scopes and self.__scopes[-1].get(expression.name.lexeme) is False:
