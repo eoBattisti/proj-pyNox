@@ -1,5 +1,7 @@
 import argparse
 
+from src.pynox import PyNox
+
 
 if __name__ == "__main__":
 
@@ -11,7 +13,7 @@ if __name__ == "__main__":
         '-f',
         '--filename',
         nargs=1,
-        required=True,
+        required=False,
         help='The lox file to be interpreted',
 
     )
@@ -29,6 +31,7 @@ if __name__ == "__main__":
         required=False,
         nargs=1,
         choices=['s', 't', 'p', 'tree'],
+        default='',
         help='''What step to stop the application and print results.
         s = Scanning;
         t = Tokens;
@@ -38,3 +41,14 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    pynox = PyNox(
+        filename=args.filename,
+        dry_run=args.dry_run,
+        stop_at=args.stop,
+    )
+
+    if args.filename:
+        pynox.run_file()
+    else:
+        pynox.run_prompt()
