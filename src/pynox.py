@@ -48,5 +48,11 @@ class PyNox:
         pass
 
     def __report(self, line: int, where: str, message: str):
+        # TODO: It might be interesting to add support for print the col as well
+        # TODO: After supporting the col, improve the error handling by displaying the line of code
+        # for example:
+        # var foo = 12345,;
+        # ---------------^
+        # Error string
         print(f"[line: {line}] Error {where}: {message}", file=sys.stderr)
         self.had_error = True
